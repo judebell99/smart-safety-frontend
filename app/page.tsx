@@ -32,6 +32,9 @@ export default function Dashboard() {
         <Worker3D workerId="TAG-001" />
         <Worker3D workerId="TAG-002" />
         <Worker3D workerId="TAG-003" />
+        <Worker3D workerId="TAG-004" />
+        <Worker3D workerId="TAG-005" />
+        <Worker3D workerId="TAG-006" />
       </Canvas>
     </main>
   )
