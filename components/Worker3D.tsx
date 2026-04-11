@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { Mesh } from 'three'
-import { Line, Text, Trail } from '@react-three/drei'
+import { Html, Line, Text, Trail } from '@react-three/drei'
 
 interface Worker3DProps {
   workerId: string;
@@ -15,24 +15,18 @@ export default function Worker3D({ workerId }: Worker3DProps) {
   const [isDanger, setIsDanger] = useState(false)
   const [hasHelmet, setHasHelmet] = useState(false)
   const [pathHistory, setPathHistory] = useState<[number, number, number][]>([])
+  const [isExpanded, setIsExpanded] = useState(false)
 
   useEffect(() => {
     const fetchInitialData = async () => {
-      const { data, error } = await supabase
-        .from('worker_status')
-        .select('*')
-        .eq('worker_id', workerId)
-        .single()
-
+      const { data, error } = await supabase.from('worker_status').select('*').eq('worker_id', workerId).single()
       if (data && !error) {
-        const initPos: [number, number, number] = [data.pos_x, 0.05, data.pos_y]
         setPosition([data.pos_x, data.pos_z, data.pos_y])
         setIsDanger(data.is_danger)
         setHasHelmet(data.has_helmet)
-        setPathHistory([initPos])
+        setPathHistory([[data.pos_x, 0.05, data.pos_y]])
       }
     }
-
     fetchInitialData()
 
     const channel = supabase.channel(`realtime:worker_${workerId}`)
@@ -67,30 +61,69 @@ export default function Worker3D({ workerId }: Worker3DProps) {
   const isAlert = isDanger || !hasHelmet;
   const statusColor = isAlert ? '#ef4444' : '#3b82f6'; // 정상일 때 파란색(Blue)으로 변경하여 사이버틱한 느낌 강조
 
-  return (<>
-    {/* 🌟 수정: 실선(Solid Line)으로 변경하고 투명도 조정 */}
-    {pathHistory.length > 1 && (
-      <Line
-        points={pathHistory}
-        color={statusColor}
-        lineWidth={3}         // 조금 더 두껍게
-        dashed={false}        // 끊김 현상의 주범인 dashed를 false로 변경
-        transparent
-        opacity={0.6}         // 존재감이 확실하도록 투명도 상향
-      />
-    )}
+  const mockHeartRate = 75 + Math.floor(Math.random() * 10);
 
-    <group position={position}>
-      <Trail width={0.6} length={10} color={statusColor} local={false}>
-        <mesh ref={meshRef}>
-          <sphereGeometry args={[0.4, 32, 32]} />
-          <meshStandardMaterial color={statusColor} emissive={statusColor} emissiveIntensity={0.5} />
-        </mesh>
-      </Trail>
-      <Text position={[0, 1.2, 0]} fontSize={0.25} color="white" outlineWidth={0.02} outlineColor="#000">
-        {workerId}
-      </Text>
-    </group>
-  </>
+  return (
+    <>
+      {pathHistory.length > 1 && (
+        <Line points={pathHistory} color={statusColor} lineWidth={3} transparent opacity={0.6} />
+      )}
+
+      <group position={position}>
+        <Trail width={0.6} length={10} color={statusColor} local={false}>
+          <mesh ref={meshRef}>
+            <sphereGeometry args={[0.4, 32, 32]} />
+            <meshStandardMaterial color={statusColor} emissive={statusColor} emissiveIntensity={0.5} />
+          </mesh>
+        </Trail>
+
+        {/* 🌟 기존 Text 대신 Html 컴포넌트 삽입 */}
+        <Html
+          position={[0, 1.5, 0]} // 구체 위쪽에 위치
+          center                 // 중앙 정렬
+          zIndexRange={[100, 0]} // 3D 객체에 가려지지 않도록 z-index 설정
+        >
+          {/* Glassmorphism Tailwind UI */}
+          <div
+            onClick={() => setIsExpanded(!isExpanded)}
+            className={`
+              cursor-pointer select-none overflow-hidden transition-all duration-300 ease-out
+              backdrop-blur-md border border-white/20 shadow-2xl rounded-xl
+              ${isAlert ? 'bg-red-500/20' : 'bg-slate-800/40'}
+              ${isExpanded ? 'w-48 p-4' : 'w-24 p-2'}
+            `}
+          >
+            {/* 상단 헤더 (항상 보임) */}
+            <div className="flex items-center justify-between">
+              <span className="text-white font-bold text-sm">{workerId}</span>
+              <span className="flex h-3 w-3 relative">
+                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isAlert ? 'bg-red-400' : 'bg-blue-400'}`}></span>
+                <span className={`relative inline-flex rounded-full h-3 w-3 ${isAlert ? 'bg-red-500' : 'bg-blue-500'}`}></span>
+              </span>
+            </div>
+
+            {/* 확장 영역 (클릭 시 보임) */}
+            <div className={`mt-3 space-y-2 transition-opacity duration-300 ${isExpanded ? 'opacity-100 block' : 'opacity-0 hidden'}`}>
+              <div className="flex justify-between text-xs text-slate-200 border-b border-white/10 pb-1">
+                <span>상태</span>
+                <span className={isDanger ? 'text-red-400 font-bold' : 'text-green-400'}>
+                  {isDanger ? '위험구역' : '안전'}
+                </span>
+              </div>
+              <div className="flex justify-between text-xs text-slate-200 border-b border-white/10 pb-1">
+                <span>안전모</span>
+                <span className={!hasHelmet ? 'text-red-400 font-bold' : 'text-green-400'}>
+                  {!hasHelmet ? '미착용' : '착용됨'}
+                </span>
+              </div>
+              <div className="flex justify-between text-xs text-slate-200">
+                <span>BPM (심박)</span>
+                <span className="text-blue-300 font-mono">{mockHeartRate}</span>
+              </div>
+            </div>
+          </div>
+        </Html>
+      </group>
+    </>
   )
 }
