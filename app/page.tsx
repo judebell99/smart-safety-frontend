@@ -8,6 +8,7 @@ import HeatmapFloor from '@/components/HeatmapFloor'
 import { supabase } from '@/lib/supabase'
 import { useEffect, useState } from 'react'
 import CameraController from '@/components/CameraController'
+import ChatBot from '@/components/ChatBot'
 
 export default function Dashboard() {
   const [selectedTarget, setSelectedTarget] = useState<string | null>(null)
@@ -84,6 +85,8 @@ export default function Dashboard() {
           <Worker3D key={id} workerId={id} />
         ))}
       </Canvas>
+
+      <ChatBot />
     </main>
   )
 }
