@@ -2,7 +2,7 @@
 'use client'
 
 import { Canvas } from '@react-three/fiber'
-import { OrbitControls, Grid, Environment } from '@react-three/drei'
+import { Grid, Environment } from '@react-three/drei'
 import Worker3D from '../components/Worker3D'
 import HeatmapFloor from '@/components/HeatmapFloor'
 import { supabase } from '@/lib/supabase'
@@ -76,6 +76,7 @@ export default function Dashboard() {
         <ambientLight intensity={0.4} />
         <Environment preset="city" />
         <Grid infiniteGrid sectionColor="#334155" cellColor="#1e293b" />
+        <HeatmapFloor />
 
         <CameraController targetId={selectedTarget} workerPositions={workerPositions} />
 
