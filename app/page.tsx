@@ -10,6 +10,8 @@ import { useEffect, useState } from 'react'
 import CameraController from '@/components/CameraController'
 import ChatBot from '@/components/ChatBot'
 
+const TARGET_WORKERS = ['TAG-001', 'TAG-002', 'TAG-003', 'TAG-004', 'TAG-005', 'TAG-006']
+
 export default function Dashboard() {
   const [selectedTarget, setSelectedTarget] = useState<string | null>(null)
   const [workerPositions, setWorkerPositions] = useState<Record<string, [number, number, number]>>({})
@@ -81,7 +83,7 @@ export default function Dashboard() {
 
         <CameraController targetId={selectedTarget} workerPositions={workerPositions} />
 
-        {['TAG-001', 'TAG-002', 'TAG-003', 'TAG-004', 'TAG-005', 'TAG-006'].map(id => (
+        {TARGET_WORKERS.map(id => (
           <Worker3D key={id} workerId={id} />
         ))}
       </Canvas>
