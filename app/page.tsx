@@ -4,6 +4,7 @@
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls, Grid, Environment } from '@react-three/drei'
 import Worker3D from '../components/Worker3D'
+import HeatmapFloor from '@/components/HeatmapFloor'
 
 export default function Dashboard() {
   return (
@@ -18,17 +19,23 @@ export default function Dashboard() {
       </header>
 
       {/* 3D Scene */}
-      <Canvas camera={{ position: [5, 5, 5], fov: 50 }}>
-        {/* 조명 및 환경 세팅 */}
-        <ambientLight intensity={0.6} />
-        <directionalLight position={[10, 10, 10]} intensity={1.5} />
-        <Environment preset="city" />
-        
-        {/* 바닥 그리드 및 카메라 컨트롤 */}
-        <Grid infiniteGrid fadeDistance={30} sectionColor="#444" cellColor="#222" />
-        <OrbitControls makeDefault />
+      <Canvas camera={{ position: [8, 8, 8], fov: 45 }}>
+        {/* 배경을 우주/심야 느낌의 어두운 색으로 설정 */}
+        <color attach="background" args={['#0f172a']} />
 
-        {/* 우리가 만든 실시간 작업자 객체 렌더링 */}
+        {/* 안개 효과를 주어 멀리 있는 그리드가 자연스럽게 사라지도록 연출 */}
+        <fog attach="fog" args={['#0f172a', 10, 30]} />
+
+        {/* 조명을 어둡게 세팅하여 객체의 자체 발광(Emissive)이 돋보이게 함 */}
+        <ambientLight intensity={0.2} />
+        <directionalLight position={[10, 10, 10]} intensity={0.5} />
+
+        {/* 사이버틱한 바닥 그리드 */}
+        <Grid infiniteGrid fadeDistance={30} sectionColor="#334155" cellColor="#1e293b" />
+        <HeatmapFloor />
+        <OrbitControls makeDefault maxPolarAngle={Math.PI / 2 - 0.05} />
+
+        {/* 작업자들 (6명) */}
         <Worker3D workerId="TAG-001" />
         <Worker3D workerId="TAG-002" />
         <Worker3D workerId="TAG-003" />
