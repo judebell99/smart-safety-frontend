@@ -10,7 +10,7 @@ import { useEffect, useState } from 'react'
 import CameraController from '@/components/CameraController'
 import ChatBot from '@/components/ChatBot'
 
-const TARGET_WORKERS = ['TAG-001', 'TAG-002', 'TAG-003', 'TAG-004', 'TAG-005', 'TAG-006']
+const TARGET_WORKERS = ['TAG-001', 'TAG-002', 'TAG-003']
 
 export default function Dashboard() {
   const [selectedTarget, setSelectedTarget] = useState<string | null>(null)
