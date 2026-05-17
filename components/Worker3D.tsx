@@ -25,8 +25,9 @@ export default function Worker3D({ workerId }: Worker3DProps) {
       if (data && !error) {
         // State 대신 Ref에 목표 좌표 저장
         targetPos.current.set(data.pos_x, 0, data.pos_y)
+        setHasHelmet(data.is_heart_normal)
+        setHasHelmet(data.is_pressure_normal)
         setIsDanger(data.is_danger)
-        setHasHelmet(data.has_helmet)
         setPathHistory([[data.pos_x, 0.05, data.pos_y]])
 
         // 초기 렌더링 시에는 순간이동으로 위치 맞춤
@@ -44,8 +45,9 @@ export default function Worker3D({ workerId }: Worker3DProps) {
         // 🌟 데이터가 들어오면 객체를 바로 옮기는 게 아니라 "목표 지점(Target)"만 업데이트
         targetPos.current.set(newData.pos_x, 0, newData.pos_y)
 
+        setHasHelmet(newData.is_heart_normal)
+        setHasHelmet(newData.is_pressure_normal)
         setIsDanger(newData.is_danger)
-        setHasHelmet(newData.has_helmet)
         setPathHistory(prev => {
           const last = prev[prev.length - 1]
           if (last && Math.abs(last[0] - newData.pos_x) < 0.01 && Math.abs(last[2] - newData.pos_y) < 0.01) return prev
