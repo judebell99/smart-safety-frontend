@@ -44,7 +44,7 @@ export default function ChatBot() {
   }
 
   return (
-    <div className="absolute bottom-6 right-6 z-50">
+    <div className="absolute bottom-6 right-6 z-500">
       {isOpen && (
         <div className="w-[450px] h-[600px] max-h-[80vh] bg-slate-800 border border-slate-600 rounded-xl shadow-2xl flex flex-col overflow-hidden mb-4 backdrop-blur-md bg-opacity-95">
           <div className="bg-slate-700 p-4 text-white font-bold flex justify-between items-center">
