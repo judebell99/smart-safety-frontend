@@ -2,8 +2,8 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '../lib/supabase'
-import { Group, Mesh, Vector3 } from 'three'
-import { Html, Line, Text, Trail } from '@react-three/drei'
+import { Group, Vector3 } from 'three'
+import { Html, Line } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
 
 interface Worker3DProps {
@@ -15,7 +15,8 @@ export default function Worker3D({ workerId }: Worker3DProps) {
   const targetPos = useRef(new Vector3(0, 0, 0))
 
   const [isDanger, setIsDanger] = useState(false)
-  const [hasHelmet, setHasHelmet] = useState(true)
+  const [hasHelmet, setHasHelmet] = useState(true)       // 압력 센서와 연동
+  const [isHeartNormal, setIsHeartNormal] = useState(true) // 심박 센서 상태 추가
   const [pathHistory, setPathHistory] = useState<[number, number, number][]>([])
   const [isExpanded, setIsExpanded] = useState(false)
 
@@ -23,14 +24,14 @@ export default function Worker3D({ workerId }: Worker3DProps) {
     const fetchInitialData = async () => {
       const { data, error } = await supabase.from('worker_status').select('*').eq('worker_id', workerId).single()
       if (data && !error) {
-        // State 대신 Ref에 목표 좌표 저장
         targetPos.current.set(data.pos_x, 0, data.pos_y)
-        setHasHelmet(data.is_heart_normal)
+
+        // 💡 수정된 부분: 압력은 안전모로, 심박은 심박 상태로 각각 매핑
         setHasHelmet(data.is_pressure_normal)
+        setIsHeartNormal(data.is_heart_normal)
         setIsDanger(data.is_danger)
         setPathHistory([[data.pos_x, 0.05, data.pos_y]])
 
-        // 초기 렌더링 시에는 순간이동으로 위치 맞춤
         if (groupRef.current) {
           groupRef.current.position.copy(targetPos.current)
         }
@@ -42,12 +43,13 @@ export default function Worker3D({ workerId }: Worker3DProps) {
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'worker_status', filter: `worker_id=eq.${workerId}` }, (payload) => {
         const newData = payload.new
 
-        // 🌟 데이터가 들어오면 객체를 바로 옮기는 게 아니라 "목표 지점(Target)"만 업데이트
         targetPos.current.set(newData.pos_x, 0, newData.pos_y)
 
-        setHasHelmet(newData.is_heart_normal)
+        // 💡 수정된 부분: 실시간 데이터도 각각 매핑
         setHasHelmet(newData.is_pressure_normal)
+        setIsHeartNormal(newData.is_heart_normal)
         setIsDanger(newData.is_danger)
+
         setPathHistory(prev => {
           const last = prev[prev.length - 1]
           if (last && Math.abs(last[0] - newData.pos_x) < 0.01 && Math.abs(last[2] - newData.pos_y) < 0.01) return prev
@@ -60,15 +62,18 @@ export default function Worker3D({ workerId }: Worker3DProps) {
 
   useFrame((state, delta) => {
     if (groupRef.current) {
-      // 현재 위치에서 목표 위치(targetPos)로 부드럽게 미끄러지듯 보간(Lerp)
-      // 0.1은 이동 속도(쫀득함)를 결정합니다. 낮을수록 미끄러짐이 강해집니다.
       groupRef.current.position.lerp(targetPos.current, 0.01)
     }
   })
 
-  const isAlert = isDanger || !hasHelmet;
+  // 💡 수정된 부분: 심박수가 비정상이어도 경고(Alert) 발동
+  const isAlert = isDanger || !hasHelmet || !isHeartNormal;
   const statusColor = isAlert ? '#ef4444' : '#3b82f6';
-  const mockHeartRate = 75 + Math.floor(Math.random() * 10);
+
+  // 💡 심박 이상 시 가짜 BPM도 매우 높게(130 이상) 표시되도록 연동
+  const mockHeartRate = isHeartNormal
+    ? 70 + Math.floor(Math.random() * 15)   // 정상: 70~84
+    : 130 + Math.floor(Math.random() * 20); // 위험: 130~149
 
   return (
     <>
@@ -76,33 +81,26 @@ export default function Worker3D({ workerId }: Worker3DProps) {
         <Line points={pathHistory} color={statusColor} lineWidth={3} transparent opacity={0.6} />
       )}
 
-      {/* 🌟 position을 state로 바인딩하지 않고, useFrame이 제어하도록 빈 group에 Ref 연결 */}
       <group ref={groupRef}>
-
-        {/* 👷‍♂️ 사람 형태(Humanoid) 아바타 조립 */}
         <group position={[0, 0, 0]}>
-          {/* 머리 (Head) */}
           <mesh position={[0, 1.4, 0]}>
             <sphereGeometry args={[0.25, 16, 16]} />
             <meshStandardMaterial color={statusColor} emissive={statusColor} emissiveIntensity={0.4} />
           </mesh>
 
-          {/* 몸통 (Body) */}
           <mesh position={[0, 0.7, 0]}>
             <cylinderGeometry args={[0.3, 0.2, 1.0, 16]} />
             <meshStandardMaterial color={statusColor} emissive={statusColor} emissiveIntensity={0.2} transparent opacity={0.8} />
           </mesh>
 
-          {/* 안전모 (Helmet) - hasHelmet 상태에 따라 조건부 렌더링 */}
           {hasHelmet && (
             <mesh position={[0, 1.6, 0]}>
               <cylinderGeometry args={[0.3, 0.3, 0.15, 16]} />
-              <meshStandardMaterial color="#fbbf24" roughness={0.2} /> {/* 노란색 안전모 */}
+              <meshStandardMaterial color="#fbbf24" roughness={0.2} />
             </mesh>
           )}
         </group>
 
-        {/* Floating HTML Card (위치 상향 조정) */}
         <Html position={[0, 2.2, 0]} center zIndexRange={[100, 0]}>
           <div onClick={() => setIsExpanded(!isExpanded)} className={`cursor-pointer select-none overflow-hidden transition-all duration-300 ease-out backdrop-blur-md border border-white/20 shadow-2xl rounded-xl ${isAlert ? 'bg-red-500/20' : 'bg-slate-800/40'} ${isExpanded ? 'w-48 p-4' : 'w-24 p-2'}`}>
             <div className="flex items-center justify-between">
@@ -120,12 +118,15 @@ export default function Worker3D({ workerId }: Worker3DProps) {
                 <span>안전모</span><span className={!hasHelmet ? 'text-red-400 font-bold' : 'text-green-400'}>{!hasHelmet ? '미착용' : '착용됨'}</span>
               </div>
               <div className="flex justify-between text-xs text-slate-200">
-                <span>BPM</span><span className="text-blue-300 font-mono">{mockHeartRate}</span>
+                {/* 💡 심박수 상태 UI 추가 */}
+                <span>심박(BPM)</span>
+                <span className={!isHeartNormal ? 'text-red-400 font-bold' : 'text-blue-300 font-mono'}>
+                  {!isHeartNormal ? `위험 (${mockHeartRate})` : mockHeartRate}
+                </span>
               </div>
             </div>
           </div>
         </Html>
-
       </group>
     </>
   )
