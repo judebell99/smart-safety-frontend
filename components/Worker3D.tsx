@@ -16,7 +16,7 @@ export default function Worker3D({ workerId }: Worker3DProps) {
 
   const [isDanger, setIsDanger] = useState(false)
   const [hasHelmet, setHasHelmet] = useState(true)       // 압력 센서와 연동
-  const [isHeartNormal, setIsHeartNormal] = useState(true) // 심박 센서 상태 추가
+  const [heartRate, setHeartRate] = useState(0) // 심박 센서 상태 추가
   const [pathHistory, setPathHistory] = useState<[number, number, number][]>([])
   const [isExpanded, setIsExpanded] = useState(false)
 
@@ -28,7 +28,7 @@ export default function Worker3D({ workerId }: Worker3DProps) {
 
         // 💡 수정된 부분: 압력은 안전모로, 심박은 심박 상태로 각각 매핑
         setHasHelmet(data.is_pressure_normal)
-        setIsHeartNormal(data.is_heart_normal)
+        setHeartRate(data.heart_rate)
         setIsDanger(data.is_danger)
         setPathHistory([[data.pos_x, 0.05, data.pos_y]])
 
@@ -47,7 +47,7 @@ export default function Worker3D({ workerId }: Worker3DProps) {
 
         // 💡 수정된 부분: 실시간 데이터도 각각 매핑
         setHasHelmet(newData.is_pressure_normal)
-        setIsHeartNormal(newData.is_heart_normal)
+        setHeartRate(newData.heart_rate)
         setIsDanger(newData.is_danger)
 
         setPathHistory(prev => {
@@ -66,14 +66,10 @@ export default function Worker3D({ workerId }: Worker3DProps) {
     }
   })
 
-  // 💡 수정된 부분: 심박수가 비정상이어도 경고(Alert) 발동
-  const isAlert = isDanger || !hasHelmet || !isHeartNormal;
+  // 💡 수정된 부분: 심박수가 비정상(60 미만 또는 120 초과)이어도 경고(Alert) 발동
+  const isAbnormalHeartRate = heartRate > 0 && (heartRate < 60 || heartRate > 120);
+  const isAlert = isDanger || !hasHelmet || isAbnormalHeartRate;
   const statusColor = isAlert ? '#ef4444' : '#3b82f6';
-
-  // 💡 심박 이상 시 가짜 BPM도 매우 높게(130 이상) 표시되도록 연동
-  const mockHeartRate = isHeartNormal
-    ? 70 + Math.floor(Math.random() * 15)   // 정상: 70~84
-    : 130 + Math.floor(Math.random() * 20); // 위험: 130~149
 
   return (
     <>
@@ -120,8 +116,8 @@ export default function Worker3D({ workerId }: Worker3DProps) {
               <div className="flex justify-between text-xs text-slate-200">
                 {/* 💡 심박수 상태 UI 추가 */}
                 <span>심박(BPM)</span>
-                <span className={!isHeartNormal ? 'text-red-400 font-bold' : 'text-blue-300 font-mono'}>
-                  {!isHeartNormal ? `위험 (${mockHeartRate})` : mockHeartRate}
+                <span className={isAbnormalHeartRate ? 'text-red-400 font-bold' : 'text-blue-300 font-mono'}>
+                  {isAbnormalHeartRate ? `이상 (${heartRate})` : (heartRate > 0 ? heartRate : '-')}
                 </span>
               </div>
             </div>
