@@ -66,8 +66,8 @@ export default function Worker3D({ workerId }: Worker3DProps) {
     }
   })
 
-  // 💡 수정된 부분: 심박수가 비정상(60 미만 또는 120 초과)이어도 경고(Alert) 발동
-  const isAbnormalHeartRate = heartRate > 0 && (heartRate < 60 || heartRate > 120);
+  // 💡 수정된 부분: 심박수가 비정상(40 미만 또는 180 초과)이어도 경고(Alert) 발동
+  const isAbnormalHeartRate = heartRate > 0 && (heartRate < 40 || heartRate > 190);
   const isAlert = isDanger || !hasHelmet || isAbnormalHeartRate;
   const statusColor = isAlert ? '#ef4444' : '#3b82f6';
 
