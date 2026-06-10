@@ -79,25 +79,25 @@ export default function Worker3D({ workerId }: Worker3DProps) {
 
       <group ref={groupRef}>
         <group position={[0, 0, 0]}>
-          <mesh position={[0, 1.4, 0]}>
-            <sphereGeometry args={[0.25, 16, 16]} />
+          <mesh position={[0, 1.52, 0]}>
+            <sphereGeometry args={[0.13, 16, 16]} />
             <meshStandardMaterial color={statusColor} emissive={statusColor} emissiveIntensity={0.4} />
           </mesh>
 
           <mesh position={[0, 0.7, 0]}>
-            <cylinderGeometry args={[0.3, 0.2, 1.0, 16]} />
+            <cylinderGeometry args={[0.2, 0.15, 1.4, 16]} />
             <meshStandardMaterial color={statusColor} emissive={statusColor} emissiveIntensity={0.2} transparent opacity={0.8} />
           </mesh>
 
-          {hasHelmet && (
-            <mesh position={[0, 1.6, 0]}>
-              <cylinderGeometry args={[0.3, 0.3, 0.15, 16]} />
+          {hasHelmet || true && (
+            <mesh position={[0, 1.65, 0]}>
+              <cylinderGeometry args={[0.15, 0.15, 0.12, 16]} />
               <meshStandardMaterial color="#fbbf24" roughness={0.2} />
             </mesh>
           )}
         </group>
 
-        <Html position={[0, 2.2, 0]} center zIndexRange={[100, 0]}>
+        <Html position={[0, 1.9, 0]} center zIndexRange={[100, 0]}>
           <div onClick={() => setIsExpanded(!isExpanded)} className={`cursor-pointer select-none overflow-hidden transition-all duration-300 ease-out backdrop-blur-md border border-white/20 shadow-2xl rounded-xl ${isAlert ? 'bg-red-500/20' : 'bg-slate-800/40'} ${isExpanded ? 'w-48 p-4' : 'w-24 p-2'}`}>
             <div className="flex items-center justify-between">
               <span className="text-white font-bold text-sm">{workerId}</span>

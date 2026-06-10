@@ -8,9 +8,22 @@ import { useRef, useEffect } from 'react'
 interface CameraControllerProps {
   targetId: string | null;
   workerPositions: Record<string, [number, number, number]>;
+  defaultTarget?: [number, number, number];
+  minDistance?: number;
+  maxDistance?: number;
+  minPolarAngle?: number;
+  maxPolarAngle?: number;
 }
 
-export default function CameraController({ targetId, workerPositions }: CameraControllerProps) {
+export default function CameraController({
+  targetId,
+  workerPositions,
+  defaultTarget = [0, 0, 0],
+  minDistance = 2,
+  maxDistance = 50,
+  minPolarAngle = 0,
+  maxPolarAngle = Math.PI,
+}: CameraControllerProps) {
   const controlsRef = useRef<any>(null)
 
   // 내부 계산용 벡터
@@ -50,8 +63,8 @@ export default function CameraController({ targetId, workerPositions }: CameraCo
         offset.copy(state.camera.position).sub(targetPos)
       }
     } else {
-      // 타겟이 없을 때 (Global View): 원점으로 부드럽게 복귀
-      const origin = new Vector3(0, 0, 0)
+      // 타겟이 없을 때 (Global View): 설정된 기본 타겟으로 부드럽게 복귀
+      const origin = new Vector3(...defaultTarget)
       controlsRef.current.target.lerp(origin, 0.05)
     }
 
@@ -64,8 +77,10 @@ export default function CameraController({ targetId, workerPositions }: CameraCo
       makeDefault
       enableDamping={true}
       dampingFactor={0.05}
-      minDistance={2}
-      maxDistance={50}
+      minDistance={minDistance}
+      maxDistance={maxDistance}
+      minPolarAngle={minPolarAngle}
+      maxPolarAngle={maxPolarAngle}
     />
   )
 }
