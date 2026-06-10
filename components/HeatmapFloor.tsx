@@ -19,48 +19,75 @@ export default function HeatmapFloor() {
     const ctx = canvasMap.getContext('2d')
     if (!ctx) return
 
-    // 2. 모든 작업자의 이동을 한 번에 구독 (filter 조건 없음)
-    const channel = supabase.channel('realtime:all_workers_heatmap')
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'worker_status' },
-        (payload) => {
-          const { pos_x, pos_y } = payload.new
+    // 2. DB에서 최근 500개 위치 데이터를 가져와 블록형 히트맵으로 렌더링
+    const fetchAndDrawHeatmap = async () => {
+      const { data, error } = await supabase
+        .from('worker_logs')
+        .select('pos_x, pos_y')
+        .order('created_at', { ascending: false })
+        .limit(1000)
 
-          // 3D 좌표(-15 ~ 15)를 2D 캔버스 픽셀(0 ~ 1024) 비율로 매핑
-          const floorSize = 30; // 바닥 크기 30x30
-          const mapScale = 1024 / floorSize;
-          const cx = (pos_x + (floorSize / 2)) * mapScale;
-          const cy = (pos_y + (floorSize / 2)) * mapScale;
+      if (error || !data) return
 
-          // 부드러운 방사형 그라데이션 브러시 생성
-          const radius = 30; // 브러시 크기
-          const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
-          // 아주 옅은 빨간색을 겹겹이 칠함 (자주 지나갈수록 진해짐)
-          gradient.addColorStop(0, 'rgba(239, 68, 68, 0.05)');
-          gradient.addColorStop(1, 'rgba(239, 68, 68, 0)');
+      // 이전 화면 초기화
+      ctx.clearRect(0, 0, 1024, 1024)
 
-          ctx.beginPath();
-          ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-          ctx.fillStyle = gradient;
-          ctx.fill();
+      const floorSize = 30
+      const gridSize = 60 // 30x30 공간을 60x60 그리드로 분할 (한 칸당 0.5m)
+      const cellSize = 1024 / gridSize
 
-          // Three.js 텍스처 업데이트 트리거
-          if (textureRef.current) {
-            textureRef.current.needsUpdate = true;
+      // 그리드 카운트 배열 초기화
+      const grid: number[][] = Array(gridSize).fill(0).map(() => Array(gridSize).fill(0))
+      let maxCount = 0
+
+      // 데이터 블록 단위 평탄화 및 카운트
+      data.forEach((log) => {
+        const gridX = Math.floor(((log.pos_x + (floorSize / 2)) / floorSize) * gridSize)
+        const gridY = Math.floor(((log.pos_y + (floorSize / 2)) / floorSize) * gridSize)
+
+        if (gridX >= 0 && gridX < gridSize && gridY >= 0 && gridY < gridSize) {
+          grid[gridX][gridY] += 1
+          if (grid[gridX][gridY] > maxCount) {
+            maxCount = grid[gridX][gridY]
           }
         }
-      )
-      .subscribe()
+      })
+
+      if (maxCount === 0) maxCount = 1
+
+      // 블록 그리기
+      for (let x = 0; x < gridSize; x++) {
+        for (let y = 0; y < gridSize; y++) {
+          const count = grid[x][y]
+          if (count > 0) {
+            const intensity = count / maxCount
+            // 강도(intensity)에 따라 파란색(240) -> 녹색 -> 노란색 -> 빨간색(0)으로 변화
+            const hue = (1 - intensity) * 240
+            const alpha = 0.2 + (intensity * 0.6) // 빈도에 따라 불투명도 증가
+            ctx.fillStyle = `hsla(${hue}, 100%, 50%, ${alpha})`
+            ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize)
+          }
+        }
+      }
+
+      // Three.js 텍스처 업데이트 트리거
+      if (textureRef.current) {
+        textureRef.current.needsUpdate = true
+      }
+    }
+
+    // 마운트 시 즉시 실행하고, 이후 5초마다 동기화
+    fetchAndDrawHeatmap()
+    const intervalId = setInterval(fetchAndDrawHeatmap, 5000)
 
     return () => {
-      supabase.removeChannel(channel)
+      clearInterval(intervalId)
     }
   }, [canvasMap])
 
   return (
     // 바닥 그리드 살짝 위(y: -0.01)에 깔리도록 설정 (Z-fighting 방지)
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]}>
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.05, 0]}>
       <planeGeometry args={[30, 30]} />
       {/* 빛이 겹칠수록 밝아지는 AdditiveBlending 적용 */}
       <meshBasicMaterial

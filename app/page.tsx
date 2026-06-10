@@ -2,7 +2,7 @@
 'use client'
 
 import { Canvas } from '@react-three/fiber'
-import { Grid, Environment, Text } from '@react-three/drei'
+import { Environment, Text } from '@react-three/drei'
 import Worker3D from '../components/Worker3D'
 import HeatmapFloor from '@/components/HeatmapFloor'
 import { supabase } from '@/lib/supabase'
@@ -122,14 +122,20 @@ export default function Dashboard() {
         <color attach="background" args={['#0f172a']} />
         <ambientLight intensity={0.4} />
         <Environment preset="city" />
-        <Grid infiniteGrid sectionColor="#334155" cellColor="#1e293b" />
+
+        {/* 외곽 기본 바닥 (그리드 대체용 연한 바닥) */}
+        <mesh position={[0, -0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <planeGeometry args={[60, 60]} />
+          <meshStandardMaterial color="#1e293b" transparent opacity={0.2} />
+        </mesh>
+
         <HeatmapFloor />
 
         {/* 작업 구역 (Work Zone: Z 1.01 ~ 9.46) */}
         <group>
           <mesh position={[1.54, 0.025, 5.235]}>
             <boxGeometry args={[8.86, 0.05, 8.45]} />
-            <meshStandardMaterial color="#f59e0b" transparent opacity={0.3} />
+            <meshStandardMaterial color="#f59e0b" transparent opacity={0.15} />
           </mesh>
           <Text position={[1.54, 0.06, 5.235]} rotation={[-Math.PI / 2, 0, 0]} fontSize={0.8} color="#fcd34d" fillOpacity={0.8}>
             WORK ZONE
